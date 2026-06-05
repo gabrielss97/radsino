@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADCINO — Caça-Tokens de IA</title>
+<style>
+  :root{
+    --bg:#0a0612;
+    --cab:#1a0f2e;
+    --cab2:#2a1846;
+    --neon:#00ffe1;
+    --neon2:#ff2bd6;
+    --gold:#ffd23f;
+    --gold2:#ff8a00;
+    --red:#ff3b5c;
+    --green:#39ff7a;
+    --frame:#3d2566;
+    --pixel: 'Press Start 2P', monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+
+  body{
+    font-family: var(--pixel);
+    background:
+      radial-gradient(circle at 50% 0%, #2a1846 0%, transparent 55%),
+      radial-gradient(circle at 50% 100%, #1c0f33 0%, transparent 60%),
+      var(--bg);
+    color:#fff;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow-x:hidden;
+    image-rendering:pixelated;
+    padding:24px 12px;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 2px,transparent 2px 4px);
+    pointer-events:none;z-index:999;mix-blend-mode:multiply;
+  }
+
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  .stars span{
+    position:absolute;width:3px;height:3px;background:#fff;
+    box-shadow:0 0 6px #fff;opacity:.5;animation:twinkle 3s infinite ease-in-out;
+  }
+  @keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.9}}
+
+  /* ---------- MACHINE ---------- */
+  .machine{
+    position:relative;
+    width:min(560px,96vw);
+    background:linear-gradient(180deg,var(--cab2),var(--cab));
+    border:6px solid var(--frame);
+    border-radius:18px;
+    box-shadow:
+      0 0 0 4px #120a22,
+      0 0 40px rgba(0,255,225,.25),
+      0 0 90px rgba(255,43,214,.18),
+      inset 0 0 40px rgba(0,0,0,.6);
+    padding:22px 22px 28px;
+    z-index:2;
+  }
+
+  .topbar{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:14px;font-size:11px;color:var(--neon);text-shadow:0 0 6px var(--neon);
+  }
+
+  .title{
+    text-align:center;font-size:clamp(26px,7vw,42px);line-height:1.1;letter-spacing:2px;margin-bottom:6px;
+    background:linear-gradient(90deg,var(--neon),var(--neon2),var(--gold));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 8px rgba(0,255,225,.6));animation:hue 6s linear infinite;
+  }
+  @keyframes hue{to{filter:drop-shadow(0 0 8px rgba(255,43,214,.6)) hue-rotate(360deg)}}
+
+  .subtitle{text-align:center;font-size:10px;color:#b79bff;margin-bottom:18px;letter-spacing:1px;line-height:1.5;}
+
+  .lights{display:flex;justify-content:center;gap:8px;margin-bottom:14px;}
+  .lights b{
+    width:12px;height:12px;border-radius:50%;background:var(--gold);
+    box-shadow:0 0 10px var(--gold);animation:blink 1s infinite steps(1);
+  }
+  .lights b:nth-child(odd){animation-delay:.5s;background:var(--neon2);box-shadow:0 0 10px var(--neon2)}
+  @keyframes blink{50%{opacity:.15}}
+
+  /* ---------- REELS ---------- */
+  .screen{
+    background:#05030c;border:5px solid #120a22;border-radius:12px;padding:14px;
+    box-shadow:inset 0 0 30px rgba(0,0,0,.9), 0 0 0 3px var(--frame);position:relative;
+  }
+  .reels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .reel{
+    position:relative;height:172px;
+    background:linear-gradient(180deg,#0d0820,#160c2e);
+    border:4px solid var(--frame);border-radius:10px;overflow:hidden;
+    box-shadow:inset 0 8px 16px rgba(0,0,0,.7),inset 0 -8px 16px rgba(0,0,0,.7);
+  }
+  .reel::after{
+    content:"";position:absolute;left:0;right:0;top:50%;height:58px;transform:translateY(-50%);
+    border-top:2px solid rgba(0,255,225,.5);border-bottom:2px solid rgba(0,255,225,.5);
+    box-shadow:0 0 14px rgba(0,255,225,.35);pointer-events:none;z-index:3;
+  }
+  .reel::before{
+    content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:linear-gradient(180deg,rgba(5,3,12,.95),transparent 28%,transparent 72%,rgba(5,3,12,.95));
+  }
+  .strip{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;align-items:center;will-change:transform;}
+  .cell{height:172px;flex:0 0 172px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;}
+  .sprite{width:82px;height:82px;image-rendering:pixelated;filter:drop-shadow(0 3px 0 rgba(0,0,0,.5));}
+  .cell small{font-size:9px;color:#cdb6ff;letter-spacing:1px;}
+
+  .reels.win .reel{
+    border-color:var(--gold);
+    box-shadow:0 0 24px var(--gold),inset 0 0 20px rgba(255,210,63,.4);
+    animation:winpulse .5s infinite alternate;
+  }
+  @keyframes winpulse{to{box-shadow:0 0 36px var(--gold2),inset 0 0 26px rgba(255,138,0,.6)}}
+
+  /* ---------- CONTROLS + LEVER ---------- */
+  .controls{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:20px;}
+  .stats{font-size:11px;line-height:2;color:#d8c7ff;}
+  .stats span{color:var(--gold);text-shadow:0 0 6px var(--gold)}
+
+  /* the lever */
+  .lever-zone{display:flex;flex-direction:column;align-items:center;gap:8px;user-select:none;}
+  .lever{
+    position:relative;width:54px;height:150px;cursor:pointer;outline:none;background:none;border:none;
+  }
+  /* base/housing fixed to the machine */
+  .lever .base{
+    position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+    width:40px;height:46px;border-radius:8px;
+    background:linear-gradient(180deg,#4a2d7a,#241441);
+    border:3px solid #120a22;box-shadow:inset 0 0 8px rgba(0,0,0,.6),0 0 10px rgba(255,43,214,.3);z-index:1;
+  }
+  .lever .slot{
+    position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+    width:10px;height:34px;background:#05030c;border-radius:6px;z-index:1;
+  }
+  /* moving part: pivots from bottom */
+  .lever .arm{
+    position:absolute;bottom:14px;left:50%;width:10px;height:120px;
+    transform-origin:50% 100%;transform:translateX(-50%) translateY(0);
+    transition:transform .14s cubic-bezier(.4,1.6,.6,1);z-index:2;
+  }
+  .lever .stick{
+    position:absolute;bottom:0;left:0;width:10px;height:120px;border-radius:6px;
+    background:linear-gradient(90deg,#9aa0b3,#e9edf7 40%,#6c7286);
+    box-shadow:0 0 4px rgba(0,0,0,.5);
+  }
+  .lever .knob{
+    position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+    width:34px;height:34px;border-radius:50%;
+    background:radial-gradient(circle at 32% 30%,#ff8a9c,#ff3b5c 55%,#a30f28);
+    border:3px solid #5c0814;box-shadow:0 0 14px rgba(255,59,92,.7),inset 0 -4px 6px rgba(0,0,0,.4);
+  }
+  /* pulled-down state */
+  .lever.pulled .arm{transform:translateX(-50%) translateY(64px);}
+  .lever-label{font-size:10px;color:#b79bff;letter-spacing:1px;}
+  .lever:disabled{cursor:not-allowed;filter:grayscale(.5) brightness(.7);}
+
+  .odds{font-size:7px;color:#8d76c2;margin-top:2px;text-align:center}
+
+  /* sound toggle */
+  .sound-btn{
+    background:none;border:2px solid var(--frame);border-radius:6px;color:var(--neon);
+    font-family:var(--pixel);font-size:10px;padding:6px 9px;cursor:pointer;margin-top:6px;
+  }
+  .sound-btn.off{color:#7a6aa3;border-color:#2a1846;}
+
+  /* ---------- PAYTABLE ---------- */
+  .paytable{
+    margin-top:16px;border:3px solid var(--frame);border-radius:10px;padding:10px 12px;
+    background:rgba(10,6,22,.6);font-size:8px;line-height:1.7;color:#d8c7ff;
+  }
+  .paytable h3{font-size:9px;color:var(--neon);text-shadow:0 0 6px var(--neon);margin-bottom:6px;letter-spacing:1px;text-align:center;}
+  .ptrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 0;}
+  .ptrow .who{display:flex;align-items:center;gap:6px;}
+  .ptrow img{width:18px;height:18px;image-rendering:pixelated;}
+  .ptrow .pay{color:var(--gold);text-shadow:0 0 5px var(--gold);white-space:nowrap;}
+  .ptrow.top .pay{color:var(--neon2);text-shadow:0 0 6px var(--neon2);}
+
+  /* ---------- MESSAGE BAR ---------- */
+  .msgbar{margin-top:18px;text-align:center;font-size:11px;line-height:1.6;min-height:20px;color:var(--neon);text-shadow:0 0 8px var(--neon);letter-spacing:1px;}
+  .msgbar.lose{color:var(--red);text-shadow:0 0 8px var(--red)}
+  .msgbar.win{color:var(--gold);text-shadow:0 0 10px var(--gold)}
+  .msgbar.bonus{color:var(--green);text-shadow:0 0 10px var(--green)}
+
+  /* ---------- WIN OVERLAY ---------- */
+  .overlay{
+    position:fixed;inset:0;z-index:1000;background:rgba(5,2,14,.92);
+    display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;
+    animation:fadein .4s ease;
+  }
+  .overlay.show{display:flex;}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  .jackpot{
+    font-size:clamp(22px,7vw,46px);
+    background:linear-gradient(90deg,var(--gold),var(--gold2),var(--gold));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 14px var(--gold));animation:bounce .6s infinite alternate;margin-bottom:18px;line-height:1.3;
+  }
+  @keyframes bounce{to{transform:scale(1.06)}}
+  .win-claudes{display:flex;gap:14px;justify-content:center;margin-bottom:22px}
+  .win-claudes img{width:84px;height:84px;animation:spinpop .8s infinite alternate}
+  @keyframes spinpop{to{transform:translateY(-10px) rotate(6deg)}}
+  .prize{font-size:clamp(10px,3vw,15px);color:#fff;line-height:2;max-width:520px;}
+  .prize b{color:var(--neon);text-shadow:0 0 8px var(--neon)}
+  .tokens{font-size:clamp(14px,4vw,22px);color:var(--gold);text-shadow:0 0 12px var(--gold);display:block;margin:10px 0;word-break:break-all;}
+  .again{
+    margin-top:26px;font-family:var(--pixel);font-size:11px;color:#1a0033;
+    background:linear-gradient(180deg,var(--neon),#00b3a0);border:4px solid #00524a;border-radius:10px;padding:14px 22px;cursor:pointer;box-shadow:0 5px 0 #00524a;
+  }
+  .again:active{transform:translateY(4px);box-shadow:0 1px 0 #00524a}
+
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:1001;overflow:hidden;display:none}
+  .confetti.show{display:block}
+  .confetti i{position:absolute;top:-20px;width:10px;height:14px;opacity:.9;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+  .credit{margin-top:18px;font-size:9px;color:#6a5499;text-align:center;letter-spacing:1px}
+
+  @media(max-width:480px){
+    .reel{height:138px}.cell{height:138px;flex-basis:138px}.sprite{width:66px;height:66px}.reel::after{height:48px}
+  }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="machine">
+  <div class="topbar">
+    <span>◈ ONLINE</span>
+    <span>v2.0 NEURAL</span>
+    <span>⚡ GPU</span>
+  </div>
+
+  <h1 class="title">RAD CINO</h1>
+  <p class="subtitle">CAÇA-TOKENS DE INTELIGÊNCIA ARTIFICIAL</p>
+
+  <div class="lights"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+
+  <div class="screen">
+    <div class="reels" id="reels">
+      <div class="reel"><div class="strip" id="strip0"></div></div>
+      <div class="reel"><div class="strip" id="strip1"></div></div>
+      <div class="reel"><div class="strip" id="strip2"></div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="stats">
+      GIROS: <span id="spins">0</span><br>
+      TOKENS: <span id="credits">100</span><br>
+      MELHOR: <span id="best">—</span>
+      <br>
+      <button class="sound-btn" id="soundBtn">♪ SOM: ON</button>
+    </div>
+
+    <div class="lever-zone">
+      <button class="lever" id="lever" aria-label="Puxar alavanca">
+        <span class="base"></span>
+        <span class="slot"></span>
+        <span class="arm"><span class="stick"></span><span class="knob"></span></span>
+      </button>
+      <div class="lever-label">PUXE A ALAVANCA</div>
+    </div>
+  </div>
+
+  <div class="msgbar" id="msg">Puxe a alavanca e tente alinhar 3 símbolos iguais!</div>
+
+  <div class="credit">⌁ SISTEMA DE TOKENS NEURAIS · USE COM SABEDORIA ⌁</div>
+</div>
+
+<!-- WIN OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="jackpot">★ JACKPOT NEURAL ★</div>
+  <div class="win-claudes" id="winClaudes"></div>
+  <div class="prize">
+    <b>PARABÉNS, VOCÊ GANHOU!</b>
+    <span class="tokens">10.000.000.000.000</span>
+    DE TOKENS
+    <br><br>
+    use com cautela.
+  </div>
+  <button class="again" id="again">JOGAR DE NOVO</button>
+</div>
+
+<div class="confetti" id="confetti"></div>
+
+<script>
+/* =========================================================
+   RADCINO v2 — caça-níqueis de IA
+   - sprites pixel art via canvas
+   - alavanca animada + sons sintetizados (Web Audio)
+   - 0.1% de jackpot (3x Claude) + tabela de prêmios por trio
+   ========================================================= */
+
+// ---------- símbolos ----------
+const SYMS = [
+  { id:'claude',  name:'CLAUDE',  weight:10 },
+  { id:'brain',   name:'AI CORE', weight:8  },
+  { id:'chip',    name:'CHIP',    weight:12 },
+  { id:'gemini',  name:'GEMINI',  weight:14 },
+  { id:'gpt',     name:'GPT',     weight:16 },
+  { id:'token',   name:'TOKEN',   weight:20 },
+];
+
+// ---------- TABELA DE PRÊMIOS (rank de 3 iguais) ----------
+// claude = jackpot (mensagem + relança a pessoa com bônus alto)
+const PAYOUTS = {
+  claude: { tokens: 500, label:'JACKPOT', jackpot:true },
+  brain:  { tokens: 200, label:'AI CORE' },
+  chip:   { tokens: 100, label:'CHIP'    },
+  gemini: { tokens: 50,  label:'GEMINI'  },
+  gpt:    { tokens: 30,  label:'GPT'     },
+  token:  { tokens: 15,  label:'TOKEN'   },
+};
+// ordem de exibição (do melhor pro menor)
+const RANK_ORDER = ['claude','brain','chip','gemini','gpt','token'];
+
+const SPIN_COST = 5;
+const JACKPOT_CHANCE = 0.001; // 0.1%
+
+// ---------- gerador de sprites 16x16 ----------
+const P='#000000';
+function makeSprite(map, colors, scale=4){
+  const S=16, c=document.createElement('canvas');
+  c.width=c.height=S*scale;
+  const x=c.getContext('2d'); x.imageSmoothingEnabled=false;
+  for(let r=0;r<S;r++) for(let q=0;q<S;q++){
+    const ch=map[r][q]; if(ch===' ') continue;
+    x.fillStyle=colors[ch]||P; x.fillRect(q*scale,r*scale,scale,scale);
+  }
+  return c.toDataURL();
+}
+
+const claudeMap=[
+"                ","      ....      ","     .aaaa.     ","  .  .aaaa.  .  ",
+"  .. .aaaa. ..  ","  .a..aaaa..a.  ","   .aaaaaaaa.   "," ...aaaaaaaa... ",
+" .aaaaaaaaaaaa. "," ...aaaaaaaa... ","   .aaaaaaaa.   ","  .a..aaaa..a.  ",
+"  .. .aaaa. ..  ","  .  .aaaa.  .  ","     .aaaa.     ","      ....      "];
+const gptMap=[
+"                ","     ......     ","   ..gggggg..   ","  .gggwwwggg.   ",
+" .gggwwwwwggg.  "," .ggwwggwwwgg.  "," .ggwgggggwgg.  "," .ggwgg.ggwgg.  ",
+" .ggwggggwwgg.  "," .gggwwwwwggg.  ","  .gggwwwggg.   ","  ..gggggg..    ",
+"    ......      ","     .gg.       ","    .gggg.      ","     ....       "];
+const geminiMap=[
+"                ","       .        ","      .b.       ","     .bbb.      ",
+"    .bbbbb.     ","   .bbbbbbb.    ","    .bbbbb.     ","   .  .b.  .    ",
+"  .b.  .  .b.   "," .bbb.   .bbb.  ",".bbbbb. .bbbbb. "," .bbb.   .bbb.  ",
+"  .b.     .b.   ","   .       .    ","                ","                "];
+const tokenMap=[
+"                ","     ......     ","   ..tttttt..   ","  .tthhhhhhtt.  ",
+" .tthh.hh.hhtt. "," .thh.hhhh.hht. "," .thhh.hh.hhht. "," .thhhh.hhhhht. ",
+" .thhh.hh.hhht. "," .thh.hhhh.hht. "," .tthh.hh.hhtt. ","  .tthhhhhhtt.  ",
+"   ..tttttt..   ","     ......     ","                ","                "];
+const chipMap=[
+"   .  .  .  .   "," .............. "," .pp.pppp.pp.   ",".ppppppppppppp. ",
+".pp.PPPPPPP.pp. ",".  .PwwwwwP.  . ",".pp.PwPPwP.pp.  ",".  .PwPPwP.  .  ",
+".pp.PwwwwwP.pp. ",".  .PPPPPPP.  . ",".ppppppppppppp. "," .pp.pppp.pp.   ",
+" .............. ","   .  .  .  .   ","                ","                "];
+const brainMap=[
+"                ","     ......     ","   ..mmmmmm..   ","  .mm.mm.mm.m.  ",
+" .m.mmmmmm.mm.  "," .mmm.mm.mmmm.  "," .mm.mmmm.mmm.  "," .mmmm..mmmmm.  ",
+" .mm.mmmm.mmm.  "," .mmm.mm.mmmm.  "," .m.mmmmmm.mm.  ","  .mm.mm.mm.m.  ",
+"   ..mmmmmm..   ","     .mmmm.     ","      .mm.      ","       ..       "];
+
+const PALETTES={
+  claude:{a:'#ff8a3d'}, gpt:{g:'#10b981',w:'#d7fff0'}, gemini:{b:'#4f8cff'},
+  token:{t:'#ffd23f',h:'#ff8a00'}, chip:{p:'#b06bff',P:'#7a3dff',w:'#ffe9ff'}, brain:{m:'#ff2bd6'},
+};
+const MAPS={claude:claudeMap,gpt:gptMap,gemini:geminiMap,token:tokenMap,chip:chipMap,brain:brainMap};
+SYMS.forEach(s=> s.img = makeSprite(MAPS[s.id], PALETTES[s.id]) );
+const byId = Object.fromEntries(SYMS.map(s=>[s.id,s]));
+
+// sorteio ponderado (símbolos comuns saem mais)
+const WEIGHT_TOTAL = SYMS.reduce((a,s)=>a+s.weight,0);
+function pickWeighted(){
+  let r=rngFloat()*WEIGHT_TOTAL;
+  for(const s of SYMS){ r-=s.weight; if(r<=0) return s.id; }
+  return SYMS[SYMS.length-1].id;
+}
+
+// ---------- RNG ----------
+function rngFloat(){ const u=new Uint32Array(1); crypto.getRandomValues(u); return u[0]/4294967296; }
+
+/* =========================================================
+   ÁUDIO (Web Audio API — tudo sintetizado, sem arquivos)
+   ========================================================= */
+let actx=null, masterGain=null, ambientNodes=null, soundOn=true;
+function initAudio(){
+  if(actx) return;
+  actx = new (window.AudioContext||window.webkitAudioContext)();
+  masterGain = actx.createGain();
+  masterGain.gain.value = 0.6;
+  masterGain.connect(actx.destination);
+  startAmbient();
+}
+function now(){ return actx ? actx.currentTime : 0; }
+
+// tom simples
+function tone(freq, dur, type='square', vol=0.2, when=0){
+  if(!actx||!soundOn) return;
+  const t=now()+when;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t+dur+0.02);
+}
+// ruído curto (clunk mecânico)
+function noiseBurst(dur=0.12, vol=0.25, filterFreq=900){
+  if(!actx||!soundOn) return;
+  const t=now();
+  const buf=actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const src=actx.createBufferSource(); src.buffer=buf;
+  const f=actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filterFreq;
+  const g=actx.createGain(); g.gain.value=vol;
+  src.connect(f); f.connect(g); g.connect(masterGain); src.start(t);
+}
+
+// som da alavanca: clunk + tom descendente "mola"
+function sndLever(){
+  noiseBurst(0.14,0.3,1200);
+  tone(420,0.18,'sawtooth',0.18);
+  tone(260,0.22,'sawtooth',0.14,0.05);
+}
+// "whir" enquanto gira: ticks repetidos agendados externamente
+function sndTick(){ tone(880+Math.random()*120,0.04,'square',0.06); noiseBurst(0.03,0.06,2000); }
+// parada de cada reel
+function sndStop(){ noiseBurst(0.10,0.3,700); tone(180,0.1,'square',0.18); }
+// derrota
+function sndLose(){ tone(300,0.15,'sine',0.15); tone(220,0.2,'sine',0.13,0.1); }
+// bônus (3 iguais menores) — moedinhas subindo
+function sndBonus(){
+  const notes=[523,659,784,1047,1319];
+  notes.forEach((f,i)=> tone(f,0.14,'square',0.18,i*0.07));
+}
+// jackpot — arpejo grande
+function sndJackpot(){
+  const seq=[523,659,784,1047,1319,1568,2093];
+  seq.forEach((f,i)=> tone(f,0.18,'square',0.2,i*0.08));
+  seq.forEach((f,i)=> tone(f/2,0.18,'sawtooth',0.1,i*0.08));
+}
+
+// som de fundo: pad/hum suave + leve "casino"
+function startAmbient(){
+  if(!actx||ambientNodes) return;
+  const g=actx.createGain(); g.gain.value=0.05; g.connect(masterGain);
+  const o1=actx.createOscillator(); o1.type='sine'; o1.frequency.value=55;
+  const o2=actx.createOscillator(); o2.type='sine'; o2.frequency.value=82.4;
+  // LFO modulando volume pra dar "respiração"
+  const lfo=actx.createOscillator(); lfo.frequency.value=0.15;
+  const lfoG=actx.createGain(); lfoG.gain.value=0.025; lfo.connect(lfoG); lfoG.connect(g.gain);
+  o1.connect(g); o2.connect(g);
+  o1.start(); o2.start(); lfo.start();
+  ambientNodes={g,o1,o2,lfo};
+}
+function setSound(on){
+  soundOn=on;
+  if(masterGain) masterGain.gain.value = on?0.6:0.0;
+}
+
+/* =========================================================
+   MONTAGEM DAS FITAS
+   ========================================================= */
+const CELL = window.matchMedia('(max-width:480px)').matches ? 138 : 172;
+const STRIP_LEN = 40;
+const strips=[0,1,2].map(i=>document.getElementById('strip'+i));
+const reelData=[[],[],[]];
+
+function buildStrip(i){
+  const el=strips[i]; el.innerHTML=''; reelData[i]=[];
+  for(let k=0;k<STRIP_LEN;k++){
+    const id=pickWeighted(); reelData[i].push(id);
+    el.appendChild(cellEl(byId[id]));
+  }
+}
+function cellEl(sym){
+  const d=document.createElement('div'); d.className='cell';
+  d.innerHTML=`<img class="sprite" src="${sym.img}" alt="${sym.name}"><small>${sym.name}</small>`;
+  return d;
+}
+
+/* =========================================================
+   ESTADO + UI
+   ========================================================= */
+let spinning=false, spins=0, credits=100, best='—';
+const lever=document.getElementById('lever');
+const elMsg=document.getElementById('msg');
+const elReels=document.getElementById('reels');
+const elSpins=document.getElementById('spins');
+const elCredits=document.getElementById('credits');
+const elBest=document.getElementById('best');
+const overlay=document.getElementById('overlay');
+const winClaudes=document.getElementById('winClaudes');
+
+const NEAR=[
+  'QUASE! os neurônios tremeram...',
+  'a GPU esquentou mas não foi dessa vez.',
+  'contexto estourou. tente de novo!',
+  'tokens evaporaram no éter digital...',
+  'o modelo alucinou o resultado. ZZZ.',
+  'rate limit do azar. mais um giro!',
+  'faltou compute. puxe a alavanca!',
+];
+
+// init
+[0,1,2].forEach(buildStrip);
+[0,1,2].forEach(i=>{ const off=-CELL*Math.floor(rngFloat()*(STRIP_LEN-6)); strips[i].style.transform=`translateY(${off}px)`; });
+updateStats();
+
+(function(){
+  const box=document.getElementById('stars');
+  for(let i=0;i<60;i++){ const s=document.createElement('span');
+    s.style.left=(rngFloat()*100)+'%'; s.style.top=(rngFloat()*100)+'%';
+    s.style.animationDelay=(rngFloat()*3)+'s'; box.appendChild(s); }
+})();
+
+function updateStats(){
+  elSpins.textContent=spins; elCredits.textContent=credits.toLocaleString('pt-BR'); elBest.textContent=best;
+}
+
+/* =========================================================
+   GIRO
+   ========================================================= */
+let tickTimer=null;
+function pull(){
+  if(spinning) return;
+  initAudio();
+  if(credits < SPIN_COST){
+    elMsg.className='msgbar lose';
+    elMsg.textContent='SEM TOKENS! ganhe 3 iguais pra repor (ou recarregue a página).';
+    return;
+  }
+  spinning=true;
+  spins++; credits-=SPIN_COST; updateStats();
+
+  // anima alavanca: desce e volta
+  lever.classList.add('pulled');
+  sndLever();
+  setTimeout(()=> lever.classList.remove('pulled'), 220);
+
+  elMsg.className='msgbar'; elMsg.textContent='girando os núcleos neurais...';
+  lever.disabled=true; elReels.classList.remove('win');
+
+  // ticks durante o giro
+  if(tickTimer) clearInterval(tickTimer);
+  tickTimer=setInterval(sndTick, 90);
+
+  // resultado
+  const isJackpot = rngFloat() < JACKPOT_CHANCE;
+  let result;
+  if(isJackpot){
+    result=['claude','claude','claude'];
+  }else{
+    result=[pickWeighted(),pickWeighted(),pickWeighted()];
+    if(result[0]==='claude'&&result[1]==='claude'&&result[2]==='claude') result[2]='gpt'; // evita jackpot acidental fora do sorteio
+  }
+
+  spinReel(0, result[0], 1700).then(sndStop);
+  spinReel(1, result[1], 2200).then(sndStop);
+  spinReel(2, result[2], 2800).then(()=>{ sndStop(); finish(result, isJackpot); });
+}
+
+function spinReel(i, targetId, duration){
+  const targetIndex=STRIP_LEN-3;
+  reelData[i][targetIndex]=targetId;
+  strips[i].children[targetIndex].innerHTML = cellEl(byId[targetId]).innerHTML;
+  const finalY=-(targetIndex*CELL);
+  const startY=finalY+CELL*STRIP_LEN;
+  const t0=performance.now();
+  strips[i].style.transition='none';
+  strips[i].style.transform=`translateY(${startY}px)`;
+  return new Promise(res=>{
+    function frame(nw){
+      const t=Math.min(1,(nw-t0)/duration), e=easeOutBack(t);
+      strips[i].style.transform=`translateY(${startY+(finalY-startY)*e}px)`;
+      if(t<1) requestAnimationFrame(frame);
+      else{ strips[i].style.transform=`translateY(${finalY}px)`; res(); }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+function easeOutBack(t){ const c1=1.70158*0.6,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
+
+function finish(result, isJackpot){
+  spinning=false; lever.disabled=false;
+  if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+
+  const allSame = result[0]===result[1] && result[1]===result[2];
+  const claudes = result.filter(r=>r==='claude').length;
+
+  if(isJackpot){
+    best='JACKPOT ★'; updateStats();
+    // bônus pra continuar jogando MESMO ganhando o grande prêmio
+    credits += 10000; updateStats();
+    elReels.classList.add('win');
+    elMsg.className='msgbar win'; elMsg.textContent='★★★ TRÊS CLAUDES! +10.000 tokens de bônus! ★★★';
+    sndJackpot();
+    showWin();
+    return;
+  }
+
+  if(allSame){
+    const p=PAYOUTS[result[0]];
+    credits += p.tokens; updateStats();
+    if(best==='—' || best.startsWith('2×') || (best.endsWith('tokens')===false)) {}
+    best = '3× '+byId[result[0]].name; updateStats();
+    elReels.classList.add('win');
+    elMsg.className='msgbar bonus';
+    elMsg.textContent=`★ TRÊS ${byId[result[0]].name}! +${p.tokens} tokens pra continuar jogando! ★`;
+    sndBonus();
+    return;
+  }
+
+  if(claudes===2){
+    elMsg.className='msgbar'; elMsg.textContent='DOIS CLAUDES! faltou só um... 😵';
+    if(best==='—') { best='2× CLAUDE'; updateStats(); }
+    sndLose();
+  }else{
+    elMsg.className='msgbar lose'; elMsg.textContent=NEAR[Math.floor(rngFloat()*NEAR.length)];
+    sndLose();
+  }
+}
+
+/* =========================================================
+   VITÓRIA (jackpot)
+   ========================================================= */
+function showWin(){
+  winClaudes.innerHTML='';
+  for(let i=0;i<3;i++){ const im=document.createElement('img'); im.src=byId.claude.img; im.style.animationDelay=(i*0.15)+'s'; winClaudes.appendChild(im); }
+  overlay.classList.add('show'); confetti();
+}
+document.getElementById('again').onclick=()=>{
+  overlay.classList.remove('show');
+  document.getElementById('confetti').classList.remove('show');
+  elReels.classList.remove('win');
+  elMsg.className='msgbar'; elMsg.textContent='Puxe a alavanca e tente alinhar 3 símbolos iguais!';
+};
+
+function confetti(){
+  const box=document.getElementById('confetti'); box.innerHTML=''; box.classList.add('show');
+  const cols=['#ffd23f','#00ffe1','#ff2bd6','#39ff7a','#ff8a3d','#4f8cff'];
+  for(let i=0;i<120;i++){ const p=document.createElement('i');
+    p.style.left=(rngFloat()*100)+'%'; p.style.background=cols[Math.floor(rngFloat()*cols.length)];
+    p.style.animationDuration=(2+rngFloat()*2.5)+'s'; p.style.animationDelay=(rngFloat()*1.2)+'s';
+    p.style.transform=`rotate(${rngFloat()*360}deg)`; box.appendChild(p); }
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+lever.addEventListener('click', pull);
+window.addEventListener('keydown', e=>{
+  if(e.code==='Space'){ e.preventDefault(); if(!overlay.classList.contains('show')) pull(); }
+});
+const soundBtn=document.getElementById('soundBtn');
+soundBtn.addEventListener('click', ()=>{
+  initAudio();
+  const on = soundBtn.classList.contains('off');
+  setSound(on);
+  soundBtn.classList.toggle('off', !on);
+  soundBtn.textContent = on ? '♪ SOM: ON' : '♪ SOM: OFF';
+});
+</script>
+</body>
+</html>
