@@ -359,17 +359,17 @@ const PAYOUTS = {
 const RANK_ORDER = ['claude','brain','chip','gemini','gpt','token'];
 
 const SPIN_COST = 5;
-const JACKPOT_CHANCE = 0.006; // 0.6% (3× Claude)
+const JACKPOT_CHANCE = 0.003125; // 0.3125% (3× Claude) — metade do AI Core
 
 // ESCADA de chance por giro de cada trio (3 iguais), do menor prêmio pro maior.
 // base = token a 3 a cada 10 (0.30) e os demais vão descendo.
 // claude/jackpot é tratado à parte (0.1%).
 const TRIO_LADDER = [
-  ['token',  0.20],     // 20%
-  ['gpt',    0.10],     // metade
-  ['gemini', 0.05],     // metade
-  ['chip',   0.025],    // metade
-  ['brain',  0.0125],   // metade
+  ['token',  0.10],      // 10%
+  ['gpt',    0.05],      // metade
+  ['gemini', 0.025],     // metade
+  ['chip',   0.0125],    // metade
+  ['brain',  0.00625],   // metade
 ];
 // sorteia um trio pela escada; retorna null se nenhum saiu (giro normal)
 function rollTrio(){
