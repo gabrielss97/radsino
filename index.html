@@ -239,11 +239,18 @@
   .prize-note{
     margin-top:18px;font-size:clamp(9px,2.4vw,13px);color:#cdb6ff;letter-spacing:1px;
   }
-  .again{
-    margin-top:26px;font-family:var(--pixel);font-size:11px;color:#1a0033;
-    background:linear-gradient(180deg,var(--neon),#00b3a0);border:4px solid #00524a;border-radius:10px;padding:14px 22px;cursor:pointer;box-shadow:0 5px 0 #00524a;
+  .claim-note{
+    margin-top:24px;font-size:clamp(10px,2.8vw,15px);color:var(--gold);
+    text-shadow:0 0 8px var(--gold);letter-spacing:1px;line-height:1.6;
+    animation:bigpop .8s infinite alternate;
   }
-  .again:active{transform:translateY(4px);box-shadow:0 1px 0 #00524a}
+  .again{
+    margin-top:14px;font-family:var(--pixel);font-size:13px;color:#fff;
+    background:linear-gradient(180deg,#25d366,#128c3e);border:4px solid #0a5a26;border-radius:10px;
+    padding:16px 26px;cursor:pointer;box-shadow:0 5px 0 #0a5a26;letter-spacing:1px;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .again:active{transform:translateY(4px);box-shadow:0 1px 0 #0a5a26}
 
   .confetti{position:fixed;inset:0;pointer-events:none;z-index:1001;overflow:hidden;display:none}
   .confetti.show{display:block}
@@ -313,7 +320,8 @@
   <div class="big-number" id="bigNumber">0</div>
   <div class="big-sub">T O K E N S</div>
   <div class="prize-note">use com cautela.</div>
-  <button class="again" id="again">JOGAR DE NOVO</button>
+  <div class="claim-note">tire print dessa tela e cobre o PJ</div>
+  <button class="again" id="again">wpp PJ</button>
 </div>
 
 <div class="confetti" id="confetti"></div>
@@ -715,10 +723,9 @@ function showWin(){
   countUp(bn, PRIZE, 1900);
 }
 document.getElementById('again').onclick=()=>{
-  overlay.classList.remove('show');
-  document.getElementById('confetti').classList.remove('show');
-  elReels.classList.remove('win');
-  elMsg.className='msgbar'; elMsg.textContent='Puxe a alavanca e tente alinhar 3 símbolos iguais!';
+  const phone='5521965296633';
+  const msg='PJ eu tirei o jackpot, agora cade meus tokens???';
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank');
 };
 
 function confetti(){
