@@ -226,6 +226,13 @@
   .confetti i{position:absolute;top:-20px;width:10px;height:14px;opacity:.9;animation:fall linear forwards}
   @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 
+  .reset-btn{
+    margin-top:14px;font-family:var(--pixel);font-size:10px;color:#1a0033;
+    background:linear-gradient(180deg,var(--green),#1faa50);border:3px solid #0a5a26;
+    border-radius:9px;padding:11px 16px;cursor:pointer;box-shadow:0 4px 0 #0a5a26;letter-spacing:1px;
+  }
+  .reset-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #0a5a26}
+
   .credit{margin-top:18px;font-size:9px;color:#6a5499;text-align:center;letter-spacing:1px}
 
   @media(max-width:480px){
@@ -277,6 +284,10 @@
   </div>
 
   <div class="msgbar" id="msg">Puxe a alavanca e tente alinhar 3 símbolos iguais!</div>
+
+  <div style="text-align:center">
+    <button class="reset-btn" id="resetBtn" style="display:none">↺ RECOMEÇAR (100 tokens)</button>
+  </div>
 
   <div class="credit">⌁ SISTEMA DE TOKENS NEURAIS · USE COM SABEDORIA ⌁</div>
 </div>
@@ -499,7 +510,14 @@ function cellEl(sym){
 /* =========================================================
    ESTADO + UI
    ========================================================= */
-let spinning=false, spins=0, credits=100, best='—';
+const STORE_KEY='radsino_tokens', START_TOKENS=100;
+function loadTokens(){
+  try{ const v=localStorage.getItem(STORE_KEY); return v===null?START_TOKENS:Math.max(0,parseInt(v,10)||0); }
+  catch(e){ return START_TOKENS; }
+}
+function saveTokens(){ try{ localStorage.setItem(STORE_KEY, credits); }catch(e){} }
+
+let spinning=false, spins=0, credits=loadTokens(), best='—', over=false;
 const lever=document.getElementById('lever');
 const elMsg=document.getElementById('msg');
 const elReels=document.getElementById('reels');
@@ -533,6 +551,27 @@ updateStats();
 
 function updateStats(){
   elSpins.textContent=spins; elCredits.textContent=credits.toLocaleString('pt-BR'); elBest.textContent=best;
+  saveTokens();
+}
+
+const resetBtn=document.getElementById('resetBtn');
+function gameOver(){
+  over=true;
+  lever.disabled=true;
+  elReels.classList.remove('win');
+  elMsg.className='msgbar lose';
+  elMsg.textContent='infelizmente, você não atingiu o nirvana';
+  resetBtn.style.display='inline-block';
+  sndLose();
+}
+function resetGame(){
+  over=false;
+  credits=START_TOKENS; spins=0; best='—';
+  updateStats();
+  lever.disabled=false;
+  resetBtn.style.display='none';
+  elMsg.className='msgbar';
+  elMsg.textContent='Puxe a alavanca e tente alinhar 3 símbolos iguais!';
 }
 
 /* =========================================================
@@ -540,13 +579,9 @@ function updateStats(){
    ========================================================= */
 let tickTimer=null;
 function pull(){
-  if(spinning) return;
+  if(spinning||over) return;
   initAudio();
-  if(credits < SPIN_COST){
-    elMsg.className='msgbar lose';
-    elMsg.textContent='SEM TOKENS! ganhe 3 iguais pra repor (ou recarregue a página).';
-    return;
-  }
+  if(credits < SPIN_COST){ gameOver(); return; }
   spinning=true;
   spins++; credits-=SPIN_COST; updateStats();
 
@@ -636,6 +671,9 @@ function finish(result, isJackpot){
     elMsg.className='msgbar lose'; elMsg.textContent=NEAR[Math.floor(rngFloat()*NEAR.length)];
     sndLose();
   }
+
+  // sem tokens para outro giro → fim de jogo
+  if(credits < SPIN_COST) setTimeout(gameOver, 900);
 }
 
 /* =========================================================
@@ -666,9 +704,13 @@ function confetti(){
    INPUT
    ========================================================= */
 lever.addEventListener('click', pull);
+resetBtn.addEventListener('click', resetGame);
 window.addEventListener('keydown', e=>{
   if(e.code==='Space'){ e.preventDefault(); if(!overlay.classList.contains('show')) pull(); }
 });
+
+// se a pessoa já tinha ficado sem tokens numa sessão anterior, mantém o fim de jogo
+if(credits < SPIN_COST) gameOver();
 const soundBtn=document.getElementById('soundBtn');
 soundBtn.addEventListener('click', ()=>{
   initAudio();
