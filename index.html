@@ -97,6 +97,14 @@
     box-shadow:inset 0 0 30px rgba(0,0,0,.9), 0 0 0 3px var(--frame);position:relative;
   }
   .reels{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+
+  .legend{
+    display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;
+    margin-top:12px;font-size:10px;color:#cdb6ff;letter-spacing:1px;
+  }
+  .legend img{width:26px;height:26px;image-rendering:pixelated;}
+  .legend span{margin-left:4px;}
+  .legend b{color:var(--gold);text-shadow:0 0 8px var(--gold);}
   .reel{
     position:relative;height:172px;
     background:linear-gradient(180deg,#0d0820,#160c2e);
@@ -287,6 +295,11 @@
       <div class="reel"><div class="strip" id="strip1"></div></div>
       <div class="reel"><div class="strip" id="strip2"></div></div>
     </div>
+  </div>
+
+  <div class="legend" id="legend">
+    <img id="lgC1" alt="Claude"><img id="lgC2" alt="Claude"><img id="lgC3" alt="Claude">
+    <span>= <b>JACKPOT</b></span>
   </div>
 
   <div class="controls">
@@ -546,14 +559,18 @@ function cellEl(sym){
 /* =========================================================
    ESTADO + UI
    ========================================================= */
-const STORE_KEY='radsino_tokens', START_TOKENS=100;
+const STORE_KEY='radsino_tokens', SPINS_KEY='radsino_spins', START_TOKENS=100;
 function loadTokens(){
   try{ const v=localStorage.getItem(STORE_KEY); return v===null?START_TOKENS:Math.max(0,parseInt(v,10)||0); }
   catch(e){ return START_TOKENS; }
 }
-function saveTokens(){ try{ localStorage.setItem(STORE_KEY, credits); }catch(e){} }
+function loadSpins(){
+  try{ const v=localStorage.getItem(SPINS_KEY); return v===null?0:Math.max(0,parseInt(v,10)||0); }
+  catch(e){ return 0; }
+}
+function saveState(){ try{ localStorage.setItem(STORE_KEY, credits); localStorage.setItem(SPINS_KEY, spins); }catch(e){} }
 
-let spinning=false, spins=0, credits=loadTokens(), best='—', over=false;
+let spinning=false, spins=loadSpins(), credits=loadTokens(), best='—', over=false;
 const lever=document.getElementById('lever');
 const elMsg=document.getElementById('msg');
 const elReels=document.getElementById('reels');
@@ -576,6 +593,7 @@ const NEAR=[
 // init
 [0,1,2].forEach(buildStrip);
 [0,1,2].forEach(i=>{ const off=-CELL*Math.floor(rngFloat()*(STRIP_LEN-6)); strips[i].style.transform=`translateY(${off}px)`; });
+['lgC1','lgC2','lgC3'].forEach(id=>{ document.getElementById(id).src = byId.claude.img; });
 updateStats();
 
 (function(){
@@ -587,7 +605,7 @@ updateStats();
 
 function updateStats(){
   elSpins.textContent=spins; elCredits.textContent=credits.toLocaleString('pt-BR'); elBest.textContent=best;
-  saveTokens();
+  saveState();
 }
 
 function gameOver(){
